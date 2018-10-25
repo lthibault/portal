@@ -2,7 +2,12 @@ package pair
 
 import (
 	"testing"
+	"time"
 
+	"github.com/SentimensRG/ctx"
+
+	"github.com/SentimensRG/ctx/sigctx"
+	"github.com/lthibault/portal"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -95,25 +100,32 @@ func TestEndpoints(t *testing.T) {
 	})
 }
 
-func TestRelayMessages(t *testing.T) {
-	// pair := newPair()
-	// ep0 := newMockEP()
-	// ep1 := newMockEP()
+func TestIntegration(t *testing.T) {
+	d, cancel := ctx.WithCancel(sigctx.New())
+	defer cancel()
 
-	// // messages to be sent
-	// ep0.outq <- 0
-	// ep1.outq <- 1
+	p := portal.New(New(), portal.OptCtx(d))
 
-	// // add the endpoints & start the protocol
-	// pair.AddEndpoint(ep0)
-	// pair.AddEndpoint(ep1)
-	// go pair.Init(sigctx.New())
+	ch0 := p.Open()
+	ch1 := p.Open()
+	defer ch0.Close()
+	defer ch1.Close()
 
-	// t.Run("LeftToRight", func(t *testing.T) {
-	// 	assert.Equal(t, <-ep0.Inbox(), 1)
-	// })
+	go func() { ch0.Send() <- 0 }()
+	go func() { ch1.Send() <- 1 }()
 
-	// t.Run("RightToLeft", func(t *testing.T) {
-	// 	assert.Equal(t, <-ep1.Inbox(), 0)
-	// })
+	select {
+	case i := <-ch0.Recv():
+		assert.Equal(t, i.(int), 1)
+	case <-time.After(time.Millisecond * 10):
+		t.Error("ch0 failed to receive")
+	}
+
+	select {
+	case i := <-ch1.Recv():
+		assert.Equal(t, i.(int), 0)
+	case <-time.After(time.Millisecond * 10):
+		t.Error("ch1 failed to receive")
+	}
+
 }

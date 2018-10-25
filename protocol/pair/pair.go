@@ -20,31 +20,43 @@ func New() portal.Protocol {
 }
 
 func (p *pair) Init(d ctx.Doner) {
-	for {
-		select {
-		case <-d.Done():
-			return
-		case <-p.ready:
-			p.run(d)
-		}
-	}
-}
+	go func() {
+		cancel := func() {}
 
-func (p *pair) run(d ctx.Doner) {
-	go p.relay(p.left, p.right)
-	go p.relay(p.right, p.left)
-}
-
-func (p *pair) relay(src, dst portal.Endpoint) {
-	for {
-		select {
-		case v := <-src.Inbox():
+		for {
 			select {
-			case dst.Outbox() <- v:
-			case <-dst.Done():
+			case <-d.Done():
+				return
+			case <-p.ready:
+				cancel()
+
+				d, cancel = ctx.WithCancel(d)
+
+				go p.relay(d, cancel, p.left, p.right)
+				go p.relay(d, cancel, p.right, p.left)
+			}
+		}
+	}()
+}
+
+func (p *pair) relay(d ctx.Doner, cancel func(), src, dst portal.Endpoint) {
+	defer cancel()
+	srcd := ctx.Link(d, src).Done()
+	dstd := ctx.Link(d, dst).Done()
+
+	for {
+		select {
+		case v, ok := <-src.Inbox():
+			if !ok {
 				return
 			}
-		case <-src.Done():
+
+			select {
+			case dst.Outbox() <- v:
+			case <-dstd:
+				return
+			}
+		case <-srcd:
 			return
 		}
 	}

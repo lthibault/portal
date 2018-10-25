@@ -101,7 +101,7 @@ func New(p Protocol, opts ...option) Portal {
 		opt(ptl)
 	}
 
-	go p.Init(ctx.C(cq))
+	p.Init(ctx.C(cq))
 
 	return ptl
 }
