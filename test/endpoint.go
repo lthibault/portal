@@ -6,15 +6,23 @@ type EP struct {
 	DoneQ     chan struct{}
 }
 
+// NewEP returns a mock portal.Endpoint
 func NewEP() *EP {
 	return &EP{
+		DoneQ: make(chan struct{}),
 		InQ:   make(chan interface{}, 1),
 		OutQ:  make(chan interface{}, 1),
-		DoneQ: make(chan struct{}, 1),
 	}
 }
 
-// Done implements ctx.Doner
+// Close the Endpoint
+func (m EP) Close() {
+	close(m.DoneQ)
+	close(m.InQ)
+	close(m.OutQ)
+}
+
+// Done indicates the Endpoint is closed
 func (m EP) Done() <-chan struct{} { return m.DoneQ }
 
 // Inbox is a queue of messages received

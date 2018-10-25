@@ -4,15 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SentimensRG/ctx"
-
-	"github.com/SentimensRG/ctx/sigctx"
 	"github.com/lthibault/portal"
 	"github.com/lthibault/portal/test"
 	"github.com/stretchr/testify/assert"
 )
-
-func newPair() *pair { return New().(*pair) }
 
 func TestNewPair(t *testing.T) {
 	assert.NotNil(t, newPair().ready, "ready chan not initialized")
@@ -22,8 +17,6 @@ func TestEndpoints(t *testing.T) {
 	pair := newPair()
 	ep0 := test.NewEP()
 	ep1 := test.NewEP()
-	defer close(ep0.DoneQ)
-	defer close(ep1.DoneQ)
 
 	t.Run("Add", func(t *testing.T) {
 		t.Run("FirstEndpoint", func(t *testing.T) {
@@ -87,10 +80,7 @@ func TestEndpoints(t *testing.T) {
 }
 
 func TestIntegration(t *testing.T) {
-	d, cancel := ctx.WithCancel(sigctx.New())
-	defer cancel()
-
-	p := portal.New(New(), portal.OptCtx(d))
+	p := portal.New(New())
 
 	ch0 := p.Open()
 	ch1 := p.Open()
