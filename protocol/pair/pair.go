@@ -41,22 +41,13 @@ func (p *pair) Init(d ctx.Doner) {
 
 func (p *pair) relay(d ctx.Doner, cancel func(), src, dst portal.Endpoint) {
 	defer cancel()
-	srcd := ctx.Link(d, src).Done()
+	// srcd := ctx.Link(d, src).Done()
 	dstd := ctx.Link(d, dst).Done()
 
-	for {
+	for v := range src.Inbox() {
 		select {
-		case v, ok := <-src.Inbox():
-			if !ok {
-				return
-			}
-
-			select {
-			case dst.Outbox() <- v:
-			case <-dstd:
-				return
-			}
-		case <-srcd:
+		case dst.Outbox() <- v:
+		case <-dstd:
 			return
 		}
 	}
@@ -82,6 +73,7 @@ func (p *pair) AddEndpoint(ep portal.Endpoint) {
 func (p *pair) RemoveEndpoint(ep portal.Endpoint) {
 	p.Lock()
 	defer p.Unlock()
+
 	if ep == p.left {
 		p.left = nil
 	} else if ep == p.right {

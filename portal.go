@@ -8,13 +8,6 @@ type Portal interface {
 	Close()
 }
 
-type closeCtx struct {
-	ctx.Doner
-	closer func()
-}
-
-func (c closeCtx) Close() { c.closer() }
-
 // Chan is a two-way channel
 type Chan interface {
 	ctx.Doner
@@ -28,7 +21,6 @@ type pipe struct {
 	ctx.Doner
 	closer       func()
 	sendq, recvq chan interface{}
-	epRemover
 }
 
 // Close the pipe
@@ -39,18 +31,12 @@ func (p pipe) Close() {
 }
 
 // Send pipe
-func (p pipe) Send() chan<- interface{} { return p.sendq }
-
+func (p pipe) Send() chan<- interface{}  { return p.sendq }
 func (p pipe) Inbox() <-chan interface{} { return p.sendq }
 
 // Recv pipe
-func (p pipe) Recv() <-chan interface{} { return p.recvq }
-
+func (p pipe) Recv() <-chan interface{}   { return p.recvq }
 func (p pipe) Outbox() chan<- interface{} { return p.recvq }
-
-type epRemover interface {
-	RemoveEndpoint(Endpoint)
-}
 
 type portal struct {
 	d       ctx.Doner
@@ -62,11 +48,10 @@ type portal struct {
 func (p *portal) Open() Chan {
 	d, cancel := ctx.WithCancel(p.d)
 	pp := &pipe{
-		sendq:     make(chan interface{}, p.bufSize),
-		recvq:     make(chan interface{}, p.bufSize),
-		Doner:     d,
-		closer:    cancel,
-		epRemover: p.proto,
+		sendq:  make(chan interface{}, p.bufSize),
+		recvq:  make(chan interface{}, p.bufSize),
+		Doner:  d,
+		closer: cancel,
 	}
 
 	p.proto.AddEndpoint(pp)

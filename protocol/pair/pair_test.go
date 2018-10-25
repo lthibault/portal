@@ -26,6 +26,7 @@ func newMockEP() *mockEP {
 	}
 }
 
+func (mockEP) Close()                       {}
 func (m mockEP) Done() <-chan struct{}      { return m.dq }
 func (m mockEP) Inbox() <-chan interface{}  { return m.inq }
 func (m mockEP) Outbox() chan<- interface{} { return m.outq }
