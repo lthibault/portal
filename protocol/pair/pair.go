@@ -41,7 +41,6 @@ func (p *pair) Init(d ctx.Doner) {
 
 func (p *pair) relay(d ctx.Doner, cancel func(), src, dst portal.Endpoint) {
 	defer cancel()
-	// srcd := ctx.Link(d, src).Done()
 	dstd := ctx.Link(d, dst).Done()
 
 	for v := range src.Inbox() {

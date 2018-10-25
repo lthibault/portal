@@ -8,28 +8,11 @@ import (
 
 	"github.com/SentimensRG/ctx/sigctx"
 	"github.com/lthibault/portal"
+	"github.com/lthibault/portal/test"
 	"github.com/stretchr/testify/assert"
 )
 
 func newPair() *pair { return New().(*pair) }
-
-type mockEP struct {
-	inq, outq chan interface{}
-	dq        chan struct{}
-}
-
-func newMockEP() *mockEP {
-	return &mockEP{
-		inq:  make(chan interface{}, 1),
-		outq: make(chan interface{}, 1),
-		dq:   make(chan struct{}, 1),
-	}
-}
-
-func (mockEP) Close()                       {}
-func (m mockEP) Done() <-chan struct{}      { return m.dq }
-func (m mockEP) Inbox() <-chan interface{}  { return m.inq }
-func (m mockEP) Outbox() chan<- interface{} { return m.outq }
 
 func TestNewPair(t *testing.T) {
 	assert.NotNil(t, newPair().ready, "ready chan not initialized")
@@ -37,8 +20,10 @@ func TestNewPair(t *testing.T) {
 
 func TestEndpoints(t *testing.T) {
 	pair := newPair()
-	ep0 := newMockEP()
-	ep1 := newMockEP()
+	ep0 := test.NewEP()
+	ep1 := test.NewEP()
+	defer close(ep0.DoneQ)
+	defer close(ep1.DoneQ)
 
 	t.Run("Add", func(t *testing.T) {
 		t.Run("FirstEndpoint", func(t *testing.T) {
@@ -62,7 +47,7 @@ func TestEndpoints(t *testing.T) {
 		})
 
 		t.Run("ExcessiveEndpoint", func(t *testing.T) {
-			assert.Panics(t, func() { pair.AddEndpoint(newMockEP()) })
+			assert.Panics(t, func() { pair.AddEndpoint(test.NewEP()) })
 		})
 	})
 
